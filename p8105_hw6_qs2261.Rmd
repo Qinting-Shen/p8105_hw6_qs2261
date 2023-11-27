@@ -12,6 +12,9 @@ library(readr)
 
 
 ## Problem 3
+
+### Load and clean the data for regression analysis
+
 Import data
 ```{r}
 birthweight_raw = 
@@ -37,5 +40,43 @@ birthweight_df =
     )
 ```
 
+### Propose a regression model for birthweight
+```{r}
+fit = lm(bwt ~babysex + bhead + blength + delwt + fincome + frace +
+               gaweeks + malform + menarche + mheight + momage + mrace +
+               parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain,
+             data = birthweight_df) 
+
+broom::tidy(fit)
+```
+I put all the variables into my regression model.
+
+### Diagnostics
+```{r}
+birthweight_df |> 
+  modelr::add_predictions(fit) |> 
+  modelr::add_residuals(fit) |> 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point()
+```
+The pattern of scatter plot between predictions and residuals is not random
 
 
+
+new try
+```{r}
+fit2 = lm(bwt ~babysex + bhead + blength + delwt + 
+               gaweeks + wtgain,
+             data = birthweight_df) 
+
+broom::tidy(fit2)
+```
+
+### Diagnostics
+```{r}
+birthweight_df |> 
+  modelr::add_predictions(fit2) |> 
+  modelr::add_residuals(fit2) |> 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point()
+```
