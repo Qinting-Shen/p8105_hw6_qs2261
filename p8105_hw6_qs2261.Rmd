@@ -1,0 +1,41 @@
+---
+title: "p8105_hw6_qs2261"
+author: "Qinting Shen"
+date: "2023-11-27"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readr)
+```
+
+
+## Problem 3
+Import data
+```{r}
+birthweight_raw = 
+  read_csv(file = 'birthweight.csv')
+```
+
+Check for missing value
+```{r}
+birthweight_missing = 
+  birthweight_raw |> 
+  summarise_all(~sum(is.na(.)))
+```
+
+Clean data
+```{r}
+birthweight_df = 
+  birthweight_raw|> 
+  mutate(
+    babysex = as.factor(babysex),
+    frace = as.factor(frace),
+    malform = as.factor(malform),
+    mrace = as.factor(mrace)
+    )
+```
+
+
+
