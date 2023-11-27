@@ -21,7 +21,7 @@ birthweight_raw =
   read_csv(file = 'birthweight.csv')
 ```
 
-Check for missing value
+Check for missing value #??
 ```{r}
 birthweight_missing = 
   birthweight_raw |> 
@@ -47,6 +47,7 @@ fit = lm(bwt ~babysex + bhead + blength + delwt + fincome + frace +
                parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain,
              data = birthweight_df) 
 
+broom::glance(fit)
 broom::tidy(fit)
 ```
 I put all the variables into my regression model.
@@ -67,8 +68,9 @@ new try
 ```{r}
 fit2 = lm(bwt ~babysex + bhead + blength + delwt + 
                gaweeks + wtgain,
-             data = birthweight_df) 
+             data = birthweight_df)
 
+broom::glance(fit2)
 broom::tidy(fit2)
 ```
 
@@ -80,3 +82,36 @@ birthweight_df |>
   ggplot(aes(x = pred, y = resid)) +
   geom_point()
 ```
+
+
+
+
+### Compare my model to two others:
+
+One using length at birth and gestational age as predictors (main effects only)
+
+```{r}
+main_effects = lm(bwt ~ blength + gaweeks ,
+             data = birthweight_df) 
+
+broom::glance(main_effects)
+broom::tidy(main_effects)
+
+anova(main_effects, fit) |> 
+  broom::tidy()
+```
+
+
+One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+
+```{r}
+three_way = lm(bwt ~ bhead * blength * babysex ,
+             data = birthweight_df) 
+
+broom::glance(three_way)
+broom::tidy(three_way)
+
+anova(three_way, fit) |> 
+  broom::tidy()
+```
+
