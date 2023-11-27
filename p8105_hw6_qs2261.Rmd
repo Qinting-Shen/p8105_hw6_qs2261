@@ -8,6 +8,7 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(readr)
+library(modelr)
 ```
 
 
@@ -21,12 +22,12 @@ birthweight_raw =
   read_csv(file = 'birthweight.csv')
 ```
 
-Check for missing value #??
+Check for missing value
 ```{r}
-birthweight_missing = 
-  birthweight_raw |> 
+birthweight_raw |> 
   summarise_all(~sum(is.na(.)))
 ```
+No missing value???
 
 Clean data
 ```{r}
@@ -66,15 +67,13 @@ The pattern of scatter plot between predictions and residuals is not random
 
 new try
 ```{r}
-fit2 = lm(bwt ~babysex + bhead + blength + delwt + 
-               gaweeks + wtgain,
+fit2 = lm(bwt ~babysex + bhead + blength + delwt + gaweeks + wtgain,
              data = birthweight_df)
 
 broom::glance(fit2)
 broom::tidy(fit2)
 ```
 
-### Diagnostics
 ```{r}
 birthweight_df |> 
   modelr::add_predictions(fit2) |> 
@@ -88,7 +87,7 @@ birthweight_df |>
 
 ### Compare my model to two others:
 
-One using length at birth and gestational age as predictors (main effects only)
+* One using length at birth and gestational age as predictors (main effects only)
 
 ```{r}
 main_effects = lm(bwt ~ blength + gaweeks ,
@@ -102,7 +101,7 @@ anova(main_effects, fit) |>
 ```
 
 
-One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+* One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
 
 ```{r}
 three_way = lm(bwt ~ bhead * blength * babysex ,
@@ -115,3 +114,43 @@ anova(three_way, fit) |>
   broom::tidy()
 ```
 
+
+```{r}
+cv_df_compare = 
+  crossv_mc(birthweight_df, 100)
+```
+
+
+```{r}
+cv_df = 
+  cv_df_compare |> 
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble)
+  ) |> 
+  mutate(
+    fit_mod = map(.x = train, ~lm(bwt ~babysex + bhead + blength + delwt + fincome + frace +gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = .x)),
+    main_effects_mod = map(.x = train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+    interaction_mod = map(.x = train, ~lm(bwt ~ bhead * blength * babysex, data = .x))
+  ) |> 
+    mutate(
+    rmse_fit = map2_dbl(.x = fit_mod, .y = test, ~rmse(model = .x, data = .y)),
+    rmse_main_effects = map2_dbl(.x = main_effects_mod, .y = test, ~rmse(model = .x, data = .y)),
+    rmse_interaction = map2_dbl(.x = interaction_mod, .y = test, ~rmse(model = .x, data = .y))
+    ) |> 
+  select(-fit_mod, -main_effects_mod, -interaction_mod)
+```
+
+```{r}
+cv_df |> 
+  select(starts_with("rmse")) |> 
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") |> 
+  mutate(model = fct_inorder(model)) |> 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
+```
+
+By looking at the violin plot, I found the RMSE in my model is smallest, followed by interaction model.
