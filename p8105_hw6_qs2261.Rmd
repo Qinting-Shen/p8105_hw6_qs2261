@@ -80,9 +80,27 @@ log_beta |>
   ggplot(aes(x = log_beta1_beta2))+
   geom_density()
 ```
-* r square: the distribution is a little left skewed, and centered around 0.918.
+* r square: the distribution is a little left skewed, the majority of the r square value is greater than 0.9 and centered around 0.918.
 
-* log_beta: Since we get many NAs when calculating the log(beta1*beta2), we removed 3327 rows in this distribution plot. The distribution is left skewed, and the most frequent value is -5.
+* log_beta: Since we get many NAs when calculating the log(beta1*beta2), we removed 3327 rows in this distribution plot. The distribution is left skewed, and the majority estimates of the log_beta are greater than -7.5 and centered around -5.
+
+Compute 95% CI
+```{r}
+r_square |> 
+  summarize(
+    ci_lower = quantile(r.squared, 0.025),
+    ci_upper = quantile(r.squared, 0.975)
+  )
+
+log_beta |> 
+  summarize(
+    ci_lower = quantile(log_beta1_beta2, 0.025, na.rm = TRUE),
+    ci_upper = quantile(log_beta1_beta2, 0.975, na.rm = TRUE)
+  )
+```
+
+* The 95% CI for r square is (0.888, 0.941)
+* The 95% CI for log_beta1_beta2 is (-9.32, -4.57)
 
 ## Problem 3
 
