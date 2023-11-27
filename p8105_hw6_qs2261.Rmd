@@ -37,6 +37,52 @@ lm(tmax ~ tmin + prcp, data = weather_df) |>
   broom::tidy()
 ```
 
+### bootstrap
+produce estimates of r̂ 2 and log(β̂ 1∗β̂ 2)
+```{r}
+r_square =
+  bootstrap(weather_df, 5000, id = "strap_number") |> 
+  mutate(
+    models = map(.x = strap, ~lm(tmax ~ tmin + prcp, data = .x)),
+    results = map(models, broom::glance)
+  ) |> 
+  select(strap_number, results) |> 
+  unnest(results) |> 
+  select(strap_number, r.squared)
+
+log_beta = 
+  bootstrap(weather_df, 5000, id = "strap_number") |> 
+  mutate(
+    models = map(.x = strap, ~lm(tmax ~ tmin + prcp, data = .x)),
+    results = map(models, broom::tidy)
+  ) |> 
+  select(strap_number, results) |> 
+  unnest(results) |> 
+  select(strap_number, term, estimate) |> 
+  pivot_wider(
+    names_from = term,
+    values_from = estimate
+  ) |> 
+  mutate(
+    log_beta1_beta2 = log(tmin*prcp)
+  )
+```
+* There are many estimates of prcp is negative, so we get many NAs when calculating the log(beta1*beta2).
+
+
+Plot the distribution of your estimates, and describe these in words.
+```{r}
+r_square |> 
+  ggplot(aes(x = r.squared))+
+  geom_density()
+
+log_beta |> 
+  ggplot(aes(x = log_beta1_beta2))+
+  geom_density()
+```
+* r square: the distribution is a little left skewed, and centered around 0.918.
+
+* log_beta: Since we get many NAs when calculating the log(beta1*beta2), we removed 3327 rows in this distribution plot. The distribution is left skewed, and the most frequent value is -5.
 
 ## Problem 3
 
