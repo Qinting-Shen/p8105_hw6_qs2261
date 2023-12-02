@@ -62,38 +62,43 @@ log_beta =
 * There are many estimates of prcp is negative, so we get many NAs when calculating the log(beta1*beta2).
 
 
-Plot the distribution of your estimates, and describe these in words.
+Plot the distribution of `r.squared`, and describe these in words.
 ```{r}
 r_square |> 
   ggplot(aes(x = r.squared))+
   geom_density()
 ```
 
-* r_square: the distribution of r_square under repeated strap is a little left skewed, the majority of the r square value is greater than 0.9 and centered around 0.918.
+* r_square: the distribution of r_square under repeated strap is a little left skewed, the majority of the r square value is between 0.88 and 0.94, and the peak is around 0.918.
 
+Plot the distribution of `log_beta1_beta2`, and describe these in words.
 ```{r}
 log_beta |> 
   ggplot(aes(x = log_beta1_beta2))+
   geom_density()
 ```
 
-* log_beta: Since we get many NAs when calculating the log(beta1*beta2), we removed 3327 rows in this distribution plot. The distribution of log_beta under repeated strap is left skewed, and the majority estimates of the log_beta are greater than -7.5 and centered around -5.
+* log_beta: Since we get many NAs when calculating the log(beta1*beta2), we removed many rows in this distribution plot. The distribution of log_beta under repeated strap is left skewed, and the majority estimates of the log_beta are between -8 and -4.5, and the peak is around -5.
 
 Compute 95% CI
 ```{r}
-r_square |> 
+r_square_sum =
+  r_square |> 
   summarize(
     ci_lower = quantile(r.squared, 0.025),
     ci_upper = quantile(r.squared, 0.975)
   )
 
-log_beta |> 
+log_beta_sum =
+  log_beta |> 
   summarize(
     ci_lower = quantile(log_beta1_beta2, 0.025, na.rm = TRUE),
     ci_upper = quantile(log_beta1_beta2, 0.975, na.rm = TRUE)
   )
 ```
+The 95% CI for R squared is from `r r_square_sum$ci_lower` to `r log_beta_sum$ci_upper`.
 
+The 95% CI for log_beta1_beta2 is from `r log_beta_sum$ci_lower` to `r log_beta_sum$ci_upper`.
 
 ## Problem 3
 
@@ -103,12 +108,6 @@ Import data
 ```{r}
 birthweight_raw = 
   read_csv(file = 'birthweight.csv')
-```
-
-Check for missing value
-```{r}
-birthweight_raw |> 
-  summarise_all(~sum(is.na(.)))
 ```
 
 
@@ -121,20 +120,20 @@ birthweight_df =
     frace = as.factor(frace),
     malform = as.factor(malform),
     mrace = as.factor(mrace)
-    )
+    ) |> 
+  drop_na()
 ```
 
 ### Propose a regression model for birthweight
+
+* From my understanding, birthweight may be affected by baby’s sex, baby’s length at birth, mother’s weight at delivery, gestational age in weeks, presence of malformations that could affect weight, mother’s weight gain during pregnancy. In this case, I decide to choose `babysex` `blength` `delwt` `gaweeks` `malform` `wtgain` as predictors to predict birth weight, and fit the data to a multiple linear regression model.
+
 ```{r}
-fit = lm(bwt ~babysex + bhead + blength + delwt + fincome + frace +
-               gaweeks + malform + menarche + mheight + momage + mrace +
-               parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain,
-             data = birthweight_df) 
+fit = lm(bwt ~babysex + blength + delwt + gaweeks + malform + menarche +  wtgain, data = birthweight_df) 
 
 broom::glance(fit)
 broom::tidy(fit)
 ```
-* I put all the variables into my regression model since all the variables have potential to affect birth weight.
 
 ### Diagnostics
 ```{r}
@@ -142,15 +141,20 @@ birthweight_df |>
   modelr::add_predictions(fit) |> 
   modelr::add_residuals(fit) |> 
   ggplot(aes(x = pred, y = resid)) +
-  geom_point()
+  geom_point() +
+  labs(
+    title = "model residuals against fitted values ", 
+    x = ("Fitted Value"),
+    y = ("Residuals")
+    )
 ```
-* The pattern of scatter plot between predictions and residuals is not random
+
+* The pattern of scatter plot between predictions and residuals is not random, and in a cluster, which means this model does not meet the assumption of linear regression model.
 
 
 ### Compare my model to two others:
 
 One using length at birth and gestational age as predictors (main effects only)
-
 ```{r}
 main_effects = lm(bwt ~ blength + gaweeks ,
              data = birthweight_df) 
@@ -164,7 +168,6 @@ anova(main_effects, fit) |>
 
 
 One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
-
 ```{r}
 three_way = lm(bwt ~ bhead * blength * babysex ,
              data = birthweight_df) 
@@ -183,7 +186,7 @@ cv_df_compare =
 ```
 
 
-```{r}
+```{r, warning=FALSE}
 cv_df = 
   cv_df_compare |> 
   mutate(
@@ -203,7 +206,7 @@ cv_df =
   select(-fit_mod, -main_effects_mod, -interaction_mod)
 ```
 
-compare rmse
+compare RMSE
 ```{r}
 cv_df |> 
   select(starts_with("rmse")) |> 
@@ -218,4 +221,6 @@ cv_df |>
 
 * By looking at the violin plot, I found the RMSE in my model is smallest, followed by interaction model. 
 
-* It might be better to use my model to predict the birthweight but not investigate the relationship between these exposures and birthweight since I simply put all the relavent variables into the model. Additionally, the difference of rmse between interaction model and my model is not that big. Therefore, I think interaction model is better here.
+* It might be better to use my model to evaluate the factors associated with birthweight since my model have the smallest RMSE, which indicates that my model fits the data better than the other two models.
+
+* Additionally, the difference of RMSE between interaction model and my model is not that big. Therefore, I think interaction model also works well here.
