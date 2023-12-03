@@ -141,7 +141,7 @@ birthweight_df |>
   modelr::add_predictions(fit) |> 
   modelr::add_residuals(fit) |> 
   ggplot(aes(x = pred, y = resid)) +
-  geom_point() +
+  geom_point(alpha = 0.5) +
   labs(
     title = "model residuals against fitted values ", 
     x = ("Fitted Value"),
@@ -149,7 +149,7 @@ birthweight_df |>
     )
 ```
 
-* The pattern of scatter plot between predictions and residuals is not random, and in a cluster, which means this model does not meet the assumption of linear regression model.
+* The scatter plot of fitted values against residuals indicates a favorable pattern, with a uniform distribution around zero. Overall, the model appears reliable in explaining the relationship between the dependent and independent variables.
 
 
 ### Compare my model to two others:
